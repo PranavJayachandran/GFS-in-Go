@@ -6,9 +6,11 @@ import (
 	"io"
 	"math/rand"
 	"net/http"
-	"os"
 	"strings"
 )
+
+var fileToChunk = make(map[string][]string)
+var chunkToChunkServer = make(map[string]string)
 
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(10 << 20)
@@ -25,44 +27,53 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	defer file.Close()
-	f, err := os.Create(handler.Filename)
+
+	var folderPath []string
+	folderPathStr := r.FormValue("folderPath")
+	err = json.Unmarshal([]byte(folderPathStr), &folderPath)
 	if err != nil {
-		fmt.Println(err)
-		w.WriteHeader(http.StatusInternalServerError)
+		http.Error(w, "Failed to read file content", http.StatusInternalServerError)
 		return
 	}
-	defer f.Close()
-	for {
-		chunk, err := io.ReadAll(io.LimitReader(file, byteSize))
-		if err != nil {
-			fmt.Println(err)
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-		if len(chunk) == 0 { //Else this goes on tho be a infinite loop
-			break
-		}
-		sendToChunkServer(string(chunk))
-	}
+
+	addFile(createFileFolderType{Path: folderPath, Name: handler.Filename})
+	// for {
+	// 	chunk, err := io.ReadAll(io.LimitReader(file, byteSize))
+	// 	if err != nil {
+	// 		fmt.Println(err)
+	// 		w.WriteHeader(http.StatusInternalServerError)
+	// 		return
+	// 	}
+	// 	if len(chunk) == 0 { //Else this goes on tho be a infinite loop
+	// 		break
+	// 	}
+	// 	sendToChunkServer(string(chunk), handler.Filename)
+	// }
 
 	json.NewEncoder(w).Encode(message{Msg: "File uploaded succesfukly"})
 }
-func sendToChunkServer(chunk string) {
+func sendToChunkServer(chunk string, fileName string) {
+	var chunkName string = generateName()
 	request := strings.NewReader(`
 		{
-			"name":"` + generateName() + `",
+			"name":"` + chunkName + `",
 			"data":"` + chunk + `"
 		}
 	`)
-	serverUrl := chunkServerMap[serverNames[rand.Intn(len(serverNames))]] + "/upload"
-	resp, err := http.Post(serverUrl, "application/json", request)
+	fmt.Println(chunk)
+	var chunkNames []string
+	chunkNames = append(chunkNames, fileToChunk[fileName]...)
+	chunkNames = append(chunkNames, chunkName)
+	fileToChunk[fileName] = chunkNames
+	serverUrl := chunkServerMap[serverNames[rand.Intn(len(serverNames))]]
+	chunkToChunkServer[chunkName] = serverUrl
+	resp, err := http.Post(serverUrl+"/upload", "application/json", request)
 	if err != nil {
 		panic(err)
 	}
-	content, err := io.ReadAll(resp.Body)
+	_, err = io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(string(content), "Sent to ", serverUrl)
 	defer resp.Body.Close()
 }

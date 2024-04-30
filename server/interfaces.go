@@ -20,3 +20,12 @@ type folderStructure struct {
 type message struct {
 	Msg string `json:"msg"`
 }
+type folderTree struct {
+	folderName string
+	folder     []*folderTree
+	file       []string
+}
+type createFileFolderType struct {
+	Path []string `json:"path"`
+	Name string   `json:"folder"`
+}

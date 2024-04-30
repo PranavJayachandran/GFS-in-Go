@@ -9,12 +9,10 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func getFolderStructure(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Access-Control-Allow-Origin", "*")
-	w.Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
-	w.Header().Set("Access-Control-Allow-Headers:", "Origin, Content-Type, X-Auth-Token, Authorization")
-	w.Header().Set("Content-Type", "application/json")
+var folderRoot *folderTree
 
+func getFolderStructure(w http.ResponseWriter, r *http.Request) {
+	setHeaders(&w)
 	data := &pathReq{}
 	err := json.NewDecoder(r.Body).Decode(data)
 	if err != nil {
@@ -25,9 +23,20 @@ func getFolderStructure(w http.ResponseWriter, r *http.Request) {
 	folderStructure := folderStructure{Folders: []string{data.Path + "one"}, Files: []string{data.Path + "two", data.Path + "three"}}
 	json.NewEncoder(w).Encode(folderStructure)
 }
+func createFolder(w http.ResponseWriter, r *http.Request) {
+	setHeaders(&w)
+	folderData := &createFileFolderType{}
+	err := json.NewDecoder(r.Body).Decode(folderData)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	fmt.Println("got user:", folderData.Path)
+	addFolder(*folderData)
+}
 
 func main() {
-
+	setUp()
 	cors := handlers.CORS(
 		handlers.AllowedHeaders([]string{"Content-Type", "Origin", "X-Requested-With"}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
@@ -37,6 +46,6 @@ func main() {
 	r.HandleFunc("/attendance", attendance)
 	r.HandleFunc("/folderStructure", getFolderStructure)
 	r.HandleFunc("/upload", uploadFile)
+	r.HandleFunc("/createFolder", createFolder)
 	http.ListenAndServe(":8080", cors(r))
-
 }

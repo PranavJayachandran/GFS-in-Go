@@ -2,6 +2,7 @@ package main
 
 import (
 	"math/rand"
+	"net/http"
 	"time"
 )
 
@@ -16,3 +17,11 @@ func generateName() string {
 	}
 	return string(randomString)
 }
+
+func setHeaders(w *http.ResponseWriter) {
+	(*w).Header().Set("Access-Control-Allow-Origin", "*")
+	(*w).Header().Set("Access-Control-Allow-Methods", "GET, POST, PATCH, PUT, DELETE, OPTIONS")
+	(*w).Header().Set("Access-Control-Allow-Headers:", "Origin, Content-Type, X-Auth-Token, Authorization")
+	(*w).Header().Set("Content-Type", "application/json")
+}
+

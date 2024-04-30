@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -28,6 +29,9 @@ func attendance() {
 		}
 	`)
 	resp, err := http.Post(serverUrl, "application/json", request)
+	if err != nil {
+		panic(err)
+	}
 	content, err := io.ReadAll(resp.Body)
 	if err != nil {
 		panic(err)
@@ -42,7 +46,27 @@ func upload(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Println("got user:", data)
+	err = os.MkdirAll(os.Args[1], 0755)
+	if err != nil {
+		fmt.Println("Error creating folder:", err)
+		return
+	}
+	filePath := filepath.Join(os.Args[1], data.Name)
+	f, err := os.Create(filePath)
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	defer f.Close()
+
+	_, err = io.Copy(f, strings.NewReader(data.Data))
+	if err != nil {
+		fmt.Println(err)
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	fmt.Println("got Data:", data)
 }
 func main() {
 
