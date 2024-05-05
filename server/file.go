@@ -9,9 +9,6 @@ import (
 	"strings"
 )
 
-var fileToChunk = make(map[string][]string)
-var chunkToChunkServer = make(map[string]string)
-
 func uploadFile(w http.ResponseWriter, r *http.Request) {
 	err := r.ParseMultipartForm(10 << 20)
 	if err != nil {
@@ -37,18 +34,18 @@ func uploadFile(w http.ResponseWriter, r *http.Request) {
 	}
 
 	addFile(createFileFolderType{Path: folderPath, Name: handler.Filename})
-	// for {
-	// 	chunk, err := io.ReadAll(io.LimitReader(file, byteSize))
-	// 	if err != nil {
-	// 		fmt.Println(err)
-	// 		w.WriteHeader(http.StatusInternalServerError)
-	// 		return
-	// 	}
-	// 	if len(chunk) == 0 { //Else this goes on tho be a infinite loop
-	// 		break
-	// 	}
-	// 	sendToChunkServer(string(chunk), handler.Filename)
-	// }
+	for {
+		chunk, err := io.ReadAll(io.LimitReader(file, byteSize))
+		if err != nil {
+			fmt.Println(err)
+			w.WriteHeader(http.StatusInternalServerError)
+			return
+		}
+		if len(chunk) == 0 { //Else this goes on tho be a infinite loop
+			break
+		}
+		sendToChunkServer(string(chunk), handler.Filename)
+	}
 
 	json.NewEncoder(w).Encode(message{Msg: "File uploaded succesfukly"})
 }

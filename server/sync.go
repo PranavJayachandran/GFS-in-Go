@@ -5,18 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 )
 
-var chunkServerMap = make(map[string]string)
 var serverNames []string
 
-func syncHeartBeat() {
-	for {
-		time.Sleep(10 * time.Second)
-		heartBeat()
-	}
-}
 func heartBeat() {
 	for key, value := range chunkServerMap {
 		fmt.Println("Heartbeat call to ", key, value)
@@ -33,6 +25,7 @@ func heartBeat() {
 }
 func attendance(w http.ResponseWriter, req *http.Request) {
 	x := &chunkServer{}
+	fmt.Println("Called")
 	err := json.NewDecoder(req.Body).Decode(x)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)

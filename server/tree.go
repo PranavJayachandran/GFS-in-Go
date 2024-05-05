@@ -1,23 +1,40 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func setUp() {
 	if folderRoot == nil {
 		folderRoot = &folderTree{
-			folder: []*folderTree{},
-			file:   []string{},
+			folders: []*folderTree{},
+			files:   []string{},
 		}
 	} else {
-		folderRoot.folder = []*folderTree{}
-		folderRoot.file = []string{}
+		folderRoot.folders = []*folderTree{}
+		folderRoot.files = []string{}
+	}
+
+	saveBackupTicker := time.NewTicker(1 * time.Minute)
+	defer saveBackupTicker.Stop()
+
+	heartBeatTikcer := time.NewTicker(2 * time.Minute)
+
+	for {
+		select {
+		case <-saveBackupTicker.C:
+			saveMapsIntoJson()
+		case <-heartBeatTikcer.C:
+			heartBeat()
+		}
 	}
 }
 
 func addFolder(folderData createFileFolderType) {
 	var temp = folderRoot
 	for _, element := range folderData.Path {
-		for _, folderElement := range folderRoot.folder {
+		for _, folderElement := range folderRoot.folders {
 			if folderElement.folderName == element {
 				folderRoot = folderElement
 				break
@@ -26,24 +43,24 @@ func addFolder(folderData createFileFolderType) {
 	}
 	var newNode = &folderTree{
 		folderName: folderData.Name,
-		folder:     []*folderTree{},
-		file:       []string{},
+		folders:    []*folderTree{},
+		files:      []string{},
 	}
-	folderRoot.folder = append(folderRoot.folder, newNode)
+	folderRoot.folders = append(folderRoot.folders, newNode)
 	folderRoot = temp
 	printTree(folderRoot)
 }
 func addFile(fileData createFileFolderType) {
 	var temp = folderRoot
 	for _, element := range fileData.Path {
-		for _, folderElement := range folderRoot.folder {
+		for _, folderElement := range folderRoot.folders {
 			if folderElement.folderName == element {
 				folderRoot = folderElement
 				break
 			}
 		}
 	}
-	folderRoot.file = append(folderRoot.file, fileData.Name)
+	folderRoot.files = append(folderRoot.files, fileData.Name)
 	folderRoot = temp
 	printTree(folderRoot)
 }
@@ -56,11 +73,11 @@ func printTree(root *folderTree) {
 		tempqueue := []*folderTree{}
 		for _, file := range queue {
 			fmt.Print("Folder Name:", file.folderName, "\t[")
-			for _, element := range file.file {
+			for _, element := range file.files {
 				fmt.Print(element)
 			}
 			fmt.Print("]\t")
-			tempqueue = append(tempqueue, file.folder...)
+			tempqueue = append(tempqueue, file.folders...)
 		}
 		fmt.Println()
 		queue = tempqueue

@@ -19,9 +19,21 @@ func getFolderStructure(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	fmt.Println("got user:", data.Path)
-	folderStructure := folderStructure{Folders: []string{data.Path + "one"}, Files: []string{data.Path + "two", data.Path + "three"}}
-	json.NewEncoder(w).Encode(folderStructure)
+	folder := folderRoot
+	fmt.Println(data, folderRoot.folders)
+	for _, element := range data.Path {
+		for _, folderElement := range folder.folders {
+			if folderElement.folderName == element {
+				folder = folderElement
+				break
+			}
+		}
+	}
+	var folderNames = []string{}
+	for _, element := range folder.folders {
+		folderNames = append(folderNames, element.folderName)
+	}
+	json.NewEncoder(w).Encode(folderStructure{Folders: folderNames, Files: folder.files})
 }
 func createFolder(w http.ResponseWriter, r *http.Request) {
 	setHeaders(&w)
@@ -36,7 +48,8 @@ func createFolder(w http.ResponseWriter, r *http.Request) {
 }
 
 func main() {
-	setUp()
+	go setUp()
+	// retriveMapsFromJson()
 	cors := handlers.CORS(
 		handlers.AllowedHeaders([]string{"Content-Type", "Origin", "X-Requested-With"}),
 		handlers.AllowedMethods([]string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
@@ -48,4 +61,5 @@ func main() {
 	r.HandleFunc("/upload", uploadFile)
 	r.HandleFunc("/createFolder", createFolder)
 	http.ListenAndServe(":8080", cors(r))
+
 }

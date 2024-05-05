@@ -9,7 +9,7 @@ type chunkServer struct {
 	Url string `json:"url"`
 }
 type pathReq struct {
-	Path string `json:"path"`
+	Path []string `json:"path"`
 }
 
 type folderStructure struct {
@@ -22,8 +22,8 @@ type message struct {
 }
 type folderTree struct {
 	folderName string
-	folder     []*folderTree
-	file       []string
+	folders    []*folderTree
+	files      []string
 }
 type createFileFolderType struct {
 	Path []string `json:"path"`
